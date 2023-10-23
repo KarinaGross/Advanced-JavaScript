@@ -30,6 +30,19 @@ const setDataInLocalStorage = (product, review) => {
     }
 };
 
+const getAllDataFromLocalStorage = () => {
+    try {
+        let productList = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const localStorageData = localStorage.key(i);
+            productList.push(localStorageData);
+        }
+        return productList;
+    } catch (e) {
+        return false;
+    }
+}
+
 const getDataFromLocalStorage = (product) => {
     try {
         return JSON.parse(localStorage.getItem(product));
@@ -47,26 +60,119 @@ const delDataFromLocalStorage = (product) => {
     }
 };
 
+const delOneReviewFromLocalStorage = (product, review) => {
+    try {
+        let reviewsfromLS = getDataFromLocalStorage(product);
+        const indexToRemove = reviewsfromLS.indexOf(review);
+        if (indexToRemove !== -1) {
+            reviewsfromLS.splice(indexToRemove, 1);
+        }
+
+        if (reviewsfromLS.length === 0) {
+            delDataFromLocalStorage(product);
+        } else {
+            localStorage.setItem(product, JSON.stringify(reviewsfromLS));
+        }
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function delReview(product, review, container) {
+    delOneReviewFromLocalStorage(product, review);
+
+    const productReviews = getDataFromLocalStorage(product);
+
+    if (!productReviews || productReviews.length === 0) {
+        const productBox = container.closest('.productBox');
+        if (productBox) productBox.remove();
+    } else {
+        container.remove();
+    }
+}
+
 const submitReview = document.querySelector('.submit-button');
+const reviewList = document.querySelector('.products_list');
 
 submitReview.addEventListener('click', () => {
     const product = document.getElementById('productName').value;
     const review = document.getElementById('reviewText').value;
-    setDataInLocalStorage(product, review);
+
+    if (product && review) {
+        setDataInLocalStorage(product, review);
+        const existInProductContent = reviewList.querySelector(`#productContent-${product.replace(/\s+/g, "-")}`);
+        if (existInProductContent) {
+            const reviewContainer = createReviewContainer(product, review);
+            existInProductContent.appendChild(reviewContainer);
+        } else {
+            displayProducts();
+            displayReviews();
+        }
+    }
 });
 
-function displayProducts(product) {
-    const reviewList = document.querySelector('.products_list');
+function createReviewContainer(product, review) {
+    const reviewContainer = document.createElement('div');
+    reviewContainer.className = 'reviewContainer';
+
     const reviewItem = document.createElement('li');
-    reviewItem.id = `reviewItem-${product}`;
-    reviewItem.textContent = product;
-    reviewList.appendChild(reviewItem);
+    reviewItem.className = `reviewItem`;
+    reviewItem.textContent = review;
+    reviewContainer.appendChild(reviewItem);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.textContent = 'Удалить';
+    reviewContainer.appendChild(removeBtn);
+
+    removeBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        delReview(product, review, reviewContainer);
+    });
+
+    return reviewContainer;
 }
 
-for (let index = 0; index < localStorage.length; index++) {
-    displayProducts(localStorage.key(index));
+
+function displayProducts() {
+    reviewList.innerHTML = '';
+    const localStorageData = getAllDataFromLocalStorage();
+    localStorageData.forEach((item) => {
+        const productBox = document.createElement('div');
+        productBox.classList = 'productBox';
+        reviewList.append(productBox);
+
+        const productTitle = document.createElement('div');
+        productTitle.classList = 'productTitle';
+        productTitle.textContent = item;
+        productBox.appendChild(productTitle);
+
+        const productContent = document.createElement('ul');
+        productContent.id = `productContent-${item.replace(/\s+/g, "-")}`;
+        productContent.classList = 'productContent';
+        productBox.appendChild(productContent);
+
+        productTitle.addEventListener('click', () => {
+            productBox.querySelector(`#productContent-${item.replace(/\s+/g, "-")}`).classList.toggle('active');
+        })
+    })
 }
 
-// function displayReviews(product) {
-//     const reviews =
-// }
+function displayReviews() {
+    const productList = getAllDataFromLocalStorage();
+
+    productList.forEach(product => {
+        const elem = reviewList.querySelector(`#productContent-${product.replace(/\s+/g, "-")}`);
+        const reviews = getDataFromLocalStorage(product);
+
+        elem.innerHTML = '';
+
+        reviews.forEach(review => {
+            const reviewContainer = createReviewContainer(product, review);
+            elem.append(reviewContainer);
+        })
+    })
+}
+
+displayProducts();
+displayReviews();

@@ -1,0 +1,19 @@
+.productBox {
+    display: block;
+    padding: 10px;
+    cursor: pointer;
+}
+
+.productTitle {
+    text-decoration: underline;
+}
+
+.productContent {
+    overflow: hidden;
+    transition: max-height 0.3s;
+    display: none;
+}
+
+.productContent.active {
+    display: block;
+}
